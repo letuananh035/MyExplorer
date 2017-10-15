@@ -27,4 +27,5 @@
 ### Luồng sự kiện phụ
   - Bắt lỗi khi người dùng nhập sai đường dẫn.
   - Các thư mục hệ thống sẽ không thể load node con.
-###
+### Link:
+  - https://github.com/letuananh035/MyExplorer.git
