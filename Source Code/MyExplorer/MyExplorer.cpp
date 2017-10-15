@@ -52,6 +52,7 @@ HWND hTextBoxPath;
 HWND hTextBoxSearch;
 DriveSystem* Drive;
 TCHAR* pathVisit;
+TCHAR* pathPrev;
 WNDPROC pEditProc;
 int listIcon[14];
 
@@ -277,7 +278,7 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify){
 	case BUTTON_ID:
 		//MessageBox(hwnd, 0, L"Notepad", MB_YESNOCANCEL);
 		ListView_DeleteAllItems(hListView);
-		loadListViewItem(pathVisit);
+		loadListViewItem(pathPrev);
 		break;
 	case IDM_ABOUT:
 		DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, About);
@@ -321,9 +322,7 @@ LRESULT CALLBACK EditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				int isPath = dirExists(textTextBox);
 				if (isPath == 0){
 					ShellExecute(NULL, _T("open"), textTextBox, NULL, NULL, SW_SHOWNORMAL);
-					Path = new TCHAR[255];
-					Path = getPrevPath(textTextBox);
-					SendMessage(hTextBoxPath, WM_SETTEXT, 0, (LPARAM)Path);
+					SendMessage(hTextBoxPath, WM_SETTEXT, 0, (LPARAM)pathVisit);
 
 				}
 				else if (isPath == 1){
@@ -332,6 +331,7 @@ LRESULT CALLBACK EditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				}
 				else{
 					MessageBox(hwnd, L"Window can't find path. Check the spelling and try again.", L"Explorer", MB_OK);
+					SendMessage(hTextBoxPath, WM_SETTEXT, 0, (LPARAM)pathVisit);
 				}
 
 			}
@@ -722,6 +722,8 @@ void loadListViewItem(LPCWSTR path){
 void loadItemToLisview(LPCWSTR path, LPCWSTR find){
 	initListView(false);
 	SendMessage(hTextBoxPath, WM_SETTEXT, 0, (LPARAM)path);
+	pathVisit = new TCHAR[255];
+	StrCpy(pathVisit, path);
 	TCHAR buffer[MAX_LEN_PATH];
 	StrCpy(buffer, path);
 	if (wcslen(path) == 3){
@@ -746,17 +748,17 @@ void loadItemToLisview(LPCWSTR path, LPCWSTR find){
 		return;
 
 
-	pathVisit = new TCHAR[255];
-	pathVisit = getPrevPath(path);
+	pathPrev = new TCHAR[255];
+	pathPrev = getPrevPath(path);
 
 	HBITMAP hbmp = NULL;     // handle to bitmap 
-	if (_tcscmp(path, pathVisit) != 0){
+	if (_tcscmp(path, pathPrev) != 0){
 		lv.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM;
 		lv.iItem = Index;
 		lv.iSubItem = 0;
 		lv.pszText = L"..";
 		lv.iImage = listIcon[ICON_FOLDER];
-		lv.lParam = (LPARAM)pathVisit;
+		lv.lParam = (LPARAM)pathPrev;
 		ListView_InsertItem(hListView, &lv);
 		//SYSTEMTIME st;
 		//FileTimeToSystemTime(&hFile.ftLastWriteTime, &st);
@@ -865,6 +867,8 @@ void loadItemToLisview(LPCWSTR path, LPCWSTR find){
 void loadItemToLisview(LPCWSTR path){
 	initListView(false);
 	SendMessage(hTextBoxPath, WM_SETTEXT, 0, (LPARAM)path);
+	pathVisit = new TCHAR[255];
+	StrCpy(pathVisit, path);
 	TCHAR buffer[MAX_LEN_PATH];
 	StrCpy(buffer, path);
 	if (wcslen(path) == 3)
@@ -882,17 +886,17 @@ void loadItemToLisview(LPCWSTR path){
 		return;
 
 
-	pathVisit = new TCHAR[255];
-	pathVisit = getPrevPath(path);
+	pathPrev = new TCHAR[255];
+	pathPrev = getPrevPath(path);
 
 	HBITMAP hbmp = NULL;     // handle to bitmap 
-	if (_tcscmp(path, pathVisit) != 0){
+	if (_tcscmp(path, pathPrev) != 0){
 		lv.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM;
 		lv.iItem = Index;
 		lv.iSubItem = 0;
 		lv.pszText = L"..";
 		lv.iImage = listIcon[ICON_FOLDER];
-		lv.lParam = (LPARAM)pathVisit;
+		lv.lParam = (LPARAM)pathPrev;
 		ListView_InsertItem(hListView, &lv);
 		//SYSTEMTIME st;
 		//FileTimeToSystemTime(&hFile.ftLastWriteTime, &st);
