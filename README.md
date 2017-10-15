@@ -29,3 +29,5 @@
   - Các thư mục hệ thống sẽ không thể load node con.
 ### Link:
   - https://github.com/letuananh035/MyExplorer.git
+### Youtube:
+  - https://youtu.be/j1j5v6KXHAE
