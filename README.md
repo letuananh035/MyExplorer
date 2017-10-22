@@ -8,6 +8,12 @@
 
 
 ### Các chức năng làm được:
+**Upadate**
+  - Cải tiến cho phép khi thay đổi kích thước treeview thì listview thay đổi theo.
+  - Bổ  sung statusbar khi click vào một tập tin trong listview thì hiển thị kích thước tập tin, muilti select
+  - Lưu lại kích thước cửa sổ màn hình chính và nạp lại khi chương trình chạy lên.
+  
+**Bản cũ**
   - TreeView hiển thị danh sách thư mục và ổ đĩa.
   - Expanding, nhấp đôi, nhấp đơn vào TreeView.
   - ListView hiển thị danh sách tập tin, thư mục và ổ đĩa.

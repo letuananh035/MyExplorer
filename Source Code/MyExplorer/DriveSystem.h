@@ -4,6 +4,10 @@
 //Dùng để sử dụng hàm StrCpy, StrNCat
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
+#include <Shlobj.h>
+#include <Shobjidl.h>
+#pragma comment(lib, "Shell32.lib")
+
 
 #define MAX_BUFFER 105
 #define KB 1

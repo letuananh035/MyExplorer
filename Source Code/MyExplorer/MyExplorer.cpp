@@ -13,6 +13,14 @@
 
 #define MAX_LOADSTRING 100
 #define MAX_LEN_PATH 10240
+struct SizeW{
+	int width;
+	int height;
+	SizeW::SizeW(int w, int h){
+		width = w;
+		height = h;
+	}
+};
 // Function:
 HWND createTreeView(HWND hWnd);
 HWND createListView(HWND hWnd);
@@ -41,6 +49,11 @@ void OnSize(HWND hwnd, UINT state, int cx, int cy);
 void loadItemToLisview(LPCWSTR path, LPCWSTR find);
 int dirExists(std::wstring path);
 std::string ws2s(const std::wstring& wstr);
+LRESULT CALLBACK EditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK MiniProc1(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK MiniProc2(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+SizeW ReadConfig();
+void SaveConfig();
 // Global Variables:
 HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
@@ -50,12 +63,18 @@ HWND hListView = NULL;
 HWND hButtonPrev;
 HWND hTextBoxPath;
 HWND hTextBoxSearch;
+HWND hStatusBar;
+HWND hWndMain;
 DriveSystem* Drive;
 TCHAR* pathVisit;
 TCHAR* pathPrev;
 WNDPROC pEditProc;
+WNDPROC pMiniProc1;
+WNDPROC pMiniProc2;
 int listIcon[14];
-
+int Counter;
+int PartXSize;
+HCURSOR hcSizeEW;
 #define ICON_DESKTOP  0
 #define ICON_FOLDER   1
 #define ICON_DRIVE    2
@@ -156,10 +175,16 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	HWND hWnd;
 
 	hInst = hInstance; // Store instance handle in our global variable
-
-	hWnd = CreateWindowEx(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
-
+	SizeW size = ReadConfig();
+	if (size.width != -1){
+		hWnd = CreateWindowEx(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+			CW_USEDEFAULT, 0, size.width, size.height, NULL, NULL, hInstance, NULL);
+	}
+	else{
+		hWnd = CreateWindowEx(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+			CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+	}
+	hWndMain = hWnd;
 	if (!hWnd)
 	{
 		return FALSE;
@@ -181,6 +206,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY	- post a quit message and return
 //
 //
+BOOL xSizing = false;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -201,7 +227,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		NMHDR* notifyMess = (NMHDR*)lParam;
 		LPNMTREEVIEW lpnmTree = (LPNMTREEVIEW)notifyMess;
 		HTREEITEM hSelected;
-
+		int id_sel = -1;
 		switch (notifyMess->code)
 		{
 		case TVN_ITEMEXPANDING:
@@ -214,12 +240,59 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ListView_DeleteAllItems(hListView);
 			loadListViewItem(getPathTree(hSelected));
 			break;
-
 		case NM_CLICK:
 			if (notifyMess->hwndFrom == hTreeView){
 				hSelected = TreeView_GetSelection(hTreeView);
-				ListView_DeleteAllItems(hListView);
-				loadListViewItem(getPathTree(hSelected));
+				if (hSelected != NULL){
+					ListView_DeleteAllItems(hListView);
+					loadListViewItem(getPathTree(hSelected));
+				}
+			}
+			if (notifyMess->hwndFrom == hListView){
+				id_sel = ListView_GetSelectionMark(hListView);
+				int number = ListView_GetSelectedCount(hListView);
+				if (number == 0){
+					SendMessage(hStatusBar, SB_SETTEXT, 0,
+						(LPARAM)"");
+					break;
+				}
+				if (id_sel >= 0){
+					TCHAR buffer[255];
+					int size = 0;
+					char HDtext[255];
+					HWND hwndHD = ListView_GetHeader(hListView);
+					HDITEM hdi = { 0 };
+					hdi.mask = HDI_TEXT;
+					hdi.pszText = buffer;
+					hdi.cchTextMax = 255;
+					Header_GetItem(hwndHD, 3, &hdi);
+
+					if (_tcscmp(buffer, _T("Size")) == 0){
+						ListView_GetItemText(hListView, id_sel, 2, buffer, 255);
+						if (_tcscmp(buffer, _T("File folder")) == 0 || number > 1){
+							wsprintf(buffer, L"%d items     %d item selected", Counter, number);
+							SendMessage(hStatusBar, SB_SETTEXT, 0,
+								(LPARAM)buffer);
+						}
+						else{
+							TCHAR bSize[255];
+							ListView_GetItemText(hListView, id_sel, 3, bSize, 255);
+							wsprintf(buffer, L"%d items     %d item selected  %s", Counter, number, bSize);
+							SendMessage(hStatusBar, SB_SETTEXT, 0,
+								(LPARAM)buffer);
+						}
+
+					}
+					else{
+						wsprintf(buffer, L"%d items     %d item selected", Counter, number);
+						SendMessage(hStatusBar, SB_SETTEXT, 0,
+							(LPARAM)buffer);
+					}
+				}
+				else{
+					SendMessage(hStatusBar, SB_SETTEXT, 0,
+						(LPARAM)"");
+				}
 			}
 			break;
 
@@ -240,8 +313,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code here...
 		EndPaint(hWnd, &ps);
 		break;
-	//case WM_DESTROY:
-	
+		//case WM_DESTROY:
+	case WM_CLOSE:
+		SaveConfig();
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -284,12 +358,14 @@ void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify){
 		DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, About);
 		break;
 	case IDM_EXIT:
+		SaveConfig();
 		DestroyWindow(hwnd);
 		break;
 	}
 }
 //void OnPaint(HWND hwnd);
 void OnDestroy(HWND hwnd){
+	SaveConfig();
 	PostQuitMessage(0);
 }
 
@@ -342,7 +418,120 @@ LRESULT CALLBACK EditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	return CallWindowProc(pEditProc, hwnd, msg, wParam, lParam);
 }
+LRESULT CALLBACK MiniProc1(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case WM_LBUTTONDOWN:
+	{
+		RECT rect;
+		int width;
+		int height;
+		HWND hwndTV;
+		int xPos;
+		int yPos;
+		if (GetWindowRect(hWndMain, &rect))
+		{
+			width = rect.right - rect.left;
+			height = rect.bottom - rect.top;
+		}
+		// Varible used to get the mouse cursor x and y co-ordinates
+		xPos = (int)LOWORD(lParam);
+		yPos = (int)HIWORD(lParam);
 
+		xSizing = (xPos >= PartXSize - 5 &&
+			xPos <= PartXSize + 5);
+		if (xSizing)
+		{
+			SetCursor(hcSizeEW);
+		}
+		break;
+	}
+	case WM_MOUSEMOVE:
+	{
+		int xPos;
+		int yPos;
+
+		// Get the x and y co-ordinates of the mouse
+		xPos = (int)LOWORD(lParam);
+		yPos = (int)HIWORD(lParam);
+
+		// Checks if the left button is pressed during dragging the splitter
+		if (wParam == MK_LBUTTON)
+		{
+			if (xSizing)
+			{
+				PartXSize = xPos;
+				RECT rect;
+				GetClientRect(hWndMain, &rect);
+				int width = rect.right - rect.left;
+				int height = rect.bottom - rect.top;
+				if (PartXSize >= width*0.1 && PartXSize <= width*0.9){
+					SetWindowPos(hListView, NULL, PartXSize, 32, width - PartXSize, height - 32 - 24, NULL);
+					SetWindowPos(hTreeView, NULL, 0, 32, PartXSize, height - 32 - 24, NULL);
+				}
+
+			}
+		}
+		if ((xPos > (PartXSize - 5) && xPos < (PartXSize + 5)))
+		{
+			SetCursor(hcSizeEW);
+		}
+		break;
+	}
+	case WM_LBUTTONUP:{
+		xSizing = FALSE;
+		break;
+	}
+	default:
+		break;
+	}
+	return CallWindowProc(pMiniProc1, hwnd, msg, wParam, lParam);
+}
+LRESULT CALLBACK MiniProc2(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+	case WM_MOUSEMOVE:
+	{
+		int xPos;
+		int yPos;
+
+		// Get the x and y co-ordinates of the mouse
+		xPos = (int)LOWORD(lParam);
+		yPos = (int)HIWORD(lParam);
+
+		// Checks if the left button is pressed during dragging the splitter
+		if (wParam == MK_LBUTTON)
+		{
+			if (xSizing)
+			{
+				PartXSize = PartXSize + xPos;
+				RECT rect;
+				GetClientRect(hWndMain, &rect);
+				int width = rect.right - rect.left;
+				int height = rect.bottom - rect.top;
+				if (PartXSize >= width*0.1 && PartXSize <= width*0.9){
+					SetWindowPos(hListView, NULL, PartXSize, 32, width - PartXSize, height - 32 - 24, NULL);
+					SetWindowPos(hTreeView, NULL, 0, 32, PartXSize, height - 32 - 24, NULL);
+				}
+			}
+		}
+		/*if ((PartXSize + xPos > (PartXSize - 5) && PartXSize + xPos < (PartXSize + 5)))
+		{
+			SetCursor(hcSizeEW);
+		}*/
+		break;
+	}
+	case WM_LBUTTONUP:{
+		xSizing = FALSE;
+		break;
+	}
+	default:
+		break;
+	}
+	return CallWindowProc(pMiniProc2, hwnd, msg, wParam, lParam);
+}
 BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct){
 	RECT rect;
 	int width;
@@ -353,7 +542,7 @@ BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct){
 		width = rect.right - rect.left;
 		height = rect.bottom - rect.top;
 	}
-
+	PartXSize = width*0.2;
 	hButtonPrev = CreateWindow(L"button", L"",
 		WS_CHILD | WS_VISIBLE | BS_BITMAP | BS_DEFPUSHBUTTON,
 		0, 0,
@@ -378,12 +567,26 @@ BOOL OnCreate(HWND hwnd, LPCREATESTRUCT lpCreateStruct){
 	{
 		return false;
 	}
+	hStatusBar = CreateWindow(STATUSCLASSNAME, NULL,
+		WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
+		0, 0, 0, 0, hwnd, NULL, hInst, NULL);
 	Drive = new DriveSystem();
 	Drive->getSystemDrives();
 	hTreeView = createTreeView(hwnd);
 	hListView = createListView(hwnd);
 	MakeImageList();
 	addDriveToTreeView(Drive);
+
+	if (!(pMiniProc1 = (WNDPROC)SetWindowLong(hTreeView, GWL_WNDPROC, (LONG)&MiniProc1)))
+	{
+		return false;
+	}
+
+	if (!(pMiniProc2 = (WNDPROC)SetWindowLong(hListView, GWL_WNDPROC, (LONG)&MiniProc2)))
+	{
+		return false;
+	}
+	hcSizeEW = LoadCursor(NULL, IDC_SIZEWE);
 	return TRUE;
 }
 void OnSize(HWND hwnd, UINT state, int cx, int cy){
@@ -391,10 +594,10 @@ void OnSize(HWND hwnd, UINT state, int cx, int cy){
 	GetClientRect(hwnd, &rect);
 	int width = rect.right - rect.left;
 	int height = rect.bottom - rect.top;
-	SetWindowPos(hListView, NULL, width*0.2, 32, width*0.8, height - 32, NULL);
-	SetWindowPos(hTreeView, NULL, 0, 32, width*0.2, height - 32, NULL);
+	SetWindowPos(hListView, NULL, PartXSize, 32, width - PartXSize, height - 32 - 24, NULL);
+	SetWindowPos(hTreeView, NULL, 0, 32, PartXSize, height - 32 - 24, NULL);
+	SetWindowPos(hStatusBar, NULL, 0, 0, width, 24, NULL);
 }
-
 
 
 HWND createListView(HWND hWnd){
@@ -415,7 +618,7 @@ HWND createListView(HWND hWnd){
 		width*0.2,
 		32,
 		width*0.8,
-		height*0.89 - 32,
+		height*0.89 - 32 - 24,
 		hWnd,
 		(HMENU)ID_LISTVIEW,
 		hInst,
@@ -465,7 +668,7 @@ HWND createTreeView(HWND hWnd){
 		0,
 		32,
 		width*0.2,
-		height*0.89 - 32,
+		height*0.89 - 32 - 24,
 		hWnd,
 		(HMENU)ID_TREEVIEW,
 		hInst,
@@ -508,7 +711,7 @@ void addDriveToTreeView(DriveSystem *drive){
 			tvInsert.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
 			tvInsert.item.iImage = listIcon[ICON_FOLDER];
 			tvInsert.item.iSelectedImage = listIcon[ICON_FOLDER];
-			tvInsert.item.pszText =L"Load";
+			tvInsert.item.pszText = L"Load";
 			tvInsert.item.lParam = (LPARAM)L"Load";
 			HTREEITEM hItem = TreeView_InsertItem(hTreeView, &tvInsert);
 		}
@@ -618,6 +821,11 @@ void loadChildTree(HTREEITEM hSelected){
 void addDriveToListView(DriveSystem *drive){
 	initListView(true);
 	LV_ITEM lv;
+	TCHAR buffer[255];
+	Counter = drive->getCount();
+	wsprintf(buffer, L"%d items", Counter);
+	SendMessage(hStatusBar, SB_SETTEXT, 0,
+		(LPARAM)buffer);
 	for (int i = 0; i < drive->getCount(); ++i)
 	{
 		lv.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM;
@@ -703,6 +911,11 @@ void loadListViewItem(LPCWSTR path){
 		lv.iImage = listIcon[ICON_COMPUTER];
 		lv.lParam = (LPARAM)_T("MyComputer");
 		ListView_InsertItem(hListView, &lv); //Inserts a new item in a list-view control
+		TCHAR buffer[255];
+		Counter = 1;
+		wsprintf(buffer, L"%d items", Counter);
+		SendMessage(hStatusBar, SB_SETTEXT, 0,
+			(LPARAM)buffer);
 	}
 	else if (_tcscmp(path, _T("MyComputer")) == 0)
 	{
@@ -862,6 +1075,11 @@ void loadItemToLisview(LPCWSTR path, LPCWSTR find){
 		//Continues a file search from a previous call to the FindFirstFileW function
 		//Return non-zero if successfully found, otherwise return zero
 	} while (FindNextFileW(hFind, &hFile));
+	//WCHAR* buffer = new WCHAR[255];
+	Counter = Index - 1;
+	wsprintf(buffer, L"%d items", Counter);
+	SendMessage(hStatusBar, SB_SETTEXT, 0,
+		(LPARAM)buffer);
 }
 
 void loadItemToLisview(LPCWSTR path){
@@ -903,7 +1121,7 @@ void loadItemToLisview(LPCWSTR path){
 		//ListView_SetItemText(hListView, Index, 1, SYSTEMTIMEtoSTRING(st)); //Changes the text of a list - view item or subitem
 		ListView_SetItemText(hListView, Index, 2, _T("File folder"));
 		Index++;
-		
+
 		hbmp = LoadBitmap(hInst, MAKEINTRESOURCE(IDB_BITMAP15));
 		SendMessage(
 			(HWND)hButtonPrev,
@@ -1000,6 +1218,10 @@ void loadItemToLisview(LPCWSTR path){
 		//Continues a file search from a previous call to the FindFirstFileW function
 		//Return non-zero if successfully found, otherwise return zero
 	} while (FindNextFileW(hFind, &hFile));
+	Counter = Index - 1;
+	wsprintf(buffer, L"%d items", Counter);
+	SendMessage(hStatusBar, SB_SETTEXT, 0,
+		(LPARAM)buffer);
 }
 
 void initListView(bool isDrive){
@@ -1166,9 +1388,9 @@ TCHAR* getPrevPath(LPCWSTR path){
 		StrCpy(result, L"DeskTop");
 		return result;
 	}
-	if (str[len - 1] == '\\' && str[len - 2] == ':') { 
+	if (str[len - 1] == '\\' && str[len - 2] == ':') {
 		result = new TCHAR[12];
-		StrCpy(result,L"MyComputer");
+		StrCpy(result, L"MyComputer");
 		return result;
 	}
 	str = str.substr(0, str.find_last_of(L'\\'));
@@ -1222,4 +1444,51 @@ std::string ws2s(const std::wstring& wstr)
 	std::string strTo(size_needed, 0);
 	WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), int(wstr.length() + 1), &strTo[0], size_needed, 0, 0);
 	return strTo;
+}
+SizeW ReadConfig(){
+	TCHAR width[255];
+	TCHAR height[255];
+	GetPrivateProfileString(TEXT("Size Window"),
+		TEXT("width"),
+		TEXT("-1"),
+		width,
+		255,
+		TEXT(".\\config.ini"));
+	GetPrivateProfileString(TEXT("Size Window"),
+		TEXT("height"),
+		TEXT("-1"),
+		height,
+		255,
+		TEXT(".\\config.ini"));
+	if (_tcscmp(width, L"-1") == 0 || _tcscmp(height, L"-1") == 0){
+		return SizeW(-1, -1);
+	}
+	else{
+		return SizeW(_wtoi(width), _wtoi(height));
+	}
+}
+
+void SaveConfig(){
+	RECT rect;
+	int width;
+	int height;
+	if (GetWindowRect(hWndMain, &rect))
+	{
+		width = rect.right - rect.left;
+		height = rect.bottom - rect.top;
+	}
+	TCHAR buffer1[255];
+	wsprintf(buffer1, L"%d", width);
+	TCHAR buffer2[255];
+	wsprintf(buffer2, L"%d", height);
+	WritePrivateProfileString(TEXT("Size Window"),
+		TEXT("width"),
+		buffer1,
+		TEXT(".\\config.ini")
+		);
+	WritePrivateProfileString(TEXT("Size Window"),
+		TEXT("height"),
+		buffer2,
+		TEXT(".\\config.ini")
+		);
 }

@@ -1,7 +1,6 @@
 ﻿#include "stdafx.h"
 #include "DriveSystem.h"
 
-
 DriveSystem::DriveSystem()
 {
 	m_DriveName = NULL;
@@ -75,6 +74,7 @@ SizeDrive* DriveSystem::getSizeDrive(int index){
 
 void DriveSystem::getSystemDrives()
 {
+
 	TCHAR buffer[MAX_BUFFER];
 	TCHAR* tVolumeName = new TCHAR[MAX_BUFFER];
 
