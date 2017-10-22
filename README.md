@@ -36,4 +36,5 @@
 ### Link:
   - https://github.com/letuananh035/MyExplorer.git
 ### Youtube:
-  - https://youtu.be/j1j5v6KXHAE
+  - Phần 1: https://youtu.be/j1j5v6KXHAE
+  - Phần 2(Update): https://youtu.be/WNlK_smVddQ
