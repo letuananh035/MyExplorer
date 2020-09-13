@@ -38,6 +38,7 @@ LPCWSTR getPathTree(HTREEITEM hItem);
 LPCWSTR getPathList(int Item);
 TCHAR*  getPrevPath(LPCWSTR path);
 LPWSTR SYSTEMTIMEtoSTRING(SYSTEMTIME time);
+LPWSTR GetFileAttr(DWORD fileAttr);
 std::string FillString(std::string str);
 bool CheckExtension(LPCTSTR path, LPCTSTR type);
 LPWSTR GetType(const WIN32_FIND_DATA &fd);
@@ -1211,6 +1212,8 @@ void loadItemToLisview(LPCWSTR path){
 				//Last column is Size
 				DWORD fileSizeLow = hFile.nFileSizeLow; //The low-order DWORD value of the file size, in bytes
 				ListView_SetItemText(hListView, Index, 3, SizeDrive::Convert(fileSizeLow));
+
+				ListView_SetItemText(hListView, Index, 4, GetFileAttr(hFile.dwFileAttributes));
 				Index++;
 			}
 		}
@@ -1264,6 +1267,12 @@ void initListView(bool isDrive){
 
 		lvCol.pszText = _T("Size");
 		ListView_SetColumn(hListView, 3, &lvCol);
+
+
+		lvCol.fmt = LVCFMT_LEFT;
+		lvCol.pszText = _T("Attr");
+		lvCol.cx = 50;
+		ListView_InsertColumn(hListView, 4, &lvCol);
 	}
 }
 
@@ -1298,6 +1307,22 @@ LPWSTR SYSTEMTIMEtoSTRING(SYSTEMTIME time){
 	size_t outSize;
 	mbstowcs_s(&outSize, buffer, 50, result.c_str(), strlen(result.c_str()) + 1);
 	return buffer; //result.c_str();
+}
+LPWSTR GetFileAttr(DWORD fileAttr)
+{
+	LPWSTR fileAttrStr = L"";
+
+	switch (fileAttr)
+	{
+	case FILE_ATTRIBUTE_ARCHIVE:
+		fileAttrStr = L"A";
+		break;
+	case FILE_ATTRIBUTE_COMPRESSED:
+		fileAttrStr = L"C";
+		break;
+	}
+
+	return fileAttrStr;
 }
 std::string FillString(std::string str){
 	if (str.length() == 1){
