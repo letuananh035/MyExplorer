@@ -33,6 +33,9 @@ void loadChildTree(HTREEITEM hSelected);
 void loadSelected();
 void loadItemToLisview(LPCWSTR path);
 void MakeImageList();
+void SetBufferStatusBar(TCHAR buffer[]);
+void SetBufferStatusBar(TCHAR buffer[], int number);
+void SetBufferStatusBar(TCHAR buffer[], TCHAR bSize[], int number);
 bool CheckNumItemPath(HTREEITEM &hParent, LPCWSTR path);
 LPCWSTR getPathTree(HTREEITEM hItem);
 LPCWSTR getPathList(int Item);
@@ -213,7 +216,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
-	HWND test;
 	switch (message)
 	{
 		//HANDLE_MSG(hWnd, WM_PAINT, OnPaint);
@@ -250,17 +252,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			if (notifyMess->hwndFrom == hListView){
+				int iPos = ListView_GetNextItem(hListView, -1, LVNI_SELECTED);
+				ListView_SetExtendedListViewStyle(hListView, LVS_EX_INFOTIP | LVS_EX_LABELTIP);
 				id_sel = ListView_GetSelectionMark(hListView);
 				int number = ListView_GetSelectedCount(hListView);
 				if (number == 0){
+					TCHAR buffer[255]{ '\0' };
+					SetBufferStatusBar(buffer);
 					SendMessage(hStatusBar, SB_SETTEXT, 0,
-						(LPARAM)"");
+						(LPARAM)buffer);
 					break;
 				}
 				if (id_sel >= 0){
-					TCHAR buffer[255];
+					TCHAR buffer[255]{ '\0' };
 					int size = 0;
-					char HDtext[255];
 					HWND hwndHD = ListView_GetHeader(hListView);
 					HDITEM hdi = { 0 };
 					hdi.mask = HDI_TEXT;
@@ -271,28 +276,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (_tcscmp(buffer, _T("Size")) == 0){
 						ListView_GetItemText(hListView, id_sel, 2, buffer, 255);
 						if (_tcscmp(buffer, _T("File folder")) == 0 || number > 1){
-							wsprintf(buffer, L"%d items     %d item selected", Counter, number);
+							SetBufferStatusBar(buffer, number);
 							SendMessage(hStatusBar, SB_SETTEXT, 0,
 								(LPARAM)buffer);
 						}
 						else{
-							TCHAR bSize[255];
+							TCHAR bSize[255]{ '\0' };
 							ListView_GetItemText(hListView, id_sel, 3, bSize, 255);
-							wsprintf(buffer, L"%d items     %d item selected  %s", Counter, number, bSize);
+							SetBufferStatusBar(buffer, bSize, number);
 							SendMessage(hStatusBar, SB_SETTEXT, 0,
 								(LPARAM)buffer);
 						}
 
 					}
 					else{
-						wsprintf(buffer, L"%d items     %d item selected", Counter, number);
+						SetBufferStatusBar(buffer, number);
 						SendMessage(hStatusBar, SB_SETTEXT, 0,
 							(LPARAM)buffer);
 					}
 				}
 				else{
+					TCHAR buffer[255]{ '\0' };
+					SetBufferStatusBar(buffer);
 					SendMessage(hStatusBar, SB_SETTEXT, 0,
-						(LPARAM)"");
+						(LPARAM)buffer);
 				}
 			}
 			break;
@@ -828,9 +835,9 @@ void loadChildTree(HTREEITEM hSelected){
 void addDriveToListView(DriveSystem *drive){
 	initListView(true);
 	LV_ITEM lv;
-	TCHAR buffer[255];
+	TCHAR buffer[255]{ '\0' };
 	Counter = drive->getCount();
-	wsprintf(buffer, L"%d items", Counter);
+	SetBufferStatusBar(buffer);
 	SendMessage(hStatusBar, SB_SETTEXT, 0,
 		(LPARAM)buffer);
 	for (int i = 0; i < drive->getCount(); ++i)
@@ -1433,6 +1440,21 @@ TCHAR* getPrevPath(LPCWSTR path){
 	result = new TCHAR[str.length() + 1];
 	StrCpy(result, str.c_str());
 	return result;
+}
+
+void SetBufferStatusBar(TCHAR buffer[])
+{
+	wsprintf(buffer, L"%d items", Counter);
+}
+
+void SetBufferStatusBar(TCHAR buffer[], int number)
+{
+	wsprintf(buffer, L"%d items     %d item selected", Counter, number);
+}
+
+void SetBufferStatusBar(TCHAR buffer[], TCHAR bSize[], int number)
+{
+	wsprintf(buffer, L"%d items     %d item selected  %s", Counter, number, bSize);
 }
 
 LPWSTR GetType(const WIN32_FIND_DATA &fd)
