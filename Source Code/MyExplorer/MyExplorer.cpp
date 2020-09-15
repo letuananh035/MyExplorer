@@ -648,6 +648,12 @@ HWND createListView(HWND hWnd){
 	lvCol.pszText = _T("Free Space");
 	lvCol.cx = 125;
 	ListView_InsertColumn(hwndTV, 3, &lvCol);
+
+	lvCol.fmt = LVCFMT_LEFT;
+	lvCol.pszText = _T("Attr");
+	lvCol.cx = 25;
+	ListView_InsertColumn(hwndTV, 4, &lvCol);
+
 	return hwndTV;
 }
 
@@ -1246,6 +1252,11 @@ void initListView(bool isDrive){
 		lvCol.cx = 80;
 		lvCol.pszText = _T("Free Space");
 		ListView_SetColumn(hListView, 3, &lvCol);
+		
+		ListView_GetColumn(hListView, 4, &lvCol);
+		lvCol.mask = LVGS_HIDDEN;
+		lvCol.cx = 0;
+		ListView_SetColumn(hListView, 4, &lvCol);
 	}
 	else
 	{
@@ -1268,11 +1279,10 @@ void initListView(bool isDrive){
 		lvCol.pszText = _T("Size");
 		ListView_SetColumn(hListView, 3, &lvCol);
 
-
-		lvCol.fmt = LVCFMT_LEFT;
+		lvCol.fmt = LVCFMT_CENTER;
+		lvCol.cx = 40;
 		lvCol.pszText = _T("Attr");
-		lvCol.cx = 50;
-		ListView_InsertColumn(hListView, 4, &lvCol);
+		ListView_SetColumn(hListView, 4, &lvCol);
 	}
 }
 
