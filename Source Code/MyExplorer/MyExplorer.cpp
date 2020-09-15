@@ -252,8 +252,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			if (notifyMess->hwndFrom == hListView){
-				int iPos = ListView_GetNextItem(hListView, -1, LVNI_SELECTED);
-				ListView_SetExtendedListViewStyle(hListView, LVS_EX_INFOTIP | LVS_EX_LABELTIP);
 				id_sel = ListView_GetSelectionMark(hListView);
 				int number = ListView_GetSelectedCount(hListView);
 				if (number == 0){
